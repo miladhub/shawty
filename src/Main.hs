@@ -26,7 +26,7 @@ randomElement xs = do
 
 shortyGen :: IO [Char]
 shortyGen =
-  replicateM 7 (randomElement alphaNum)
+  replicateM 10 (randomElement alphaNum)
 
 saveURI :: R.Connection
         -> BC.ByteString
@@ -69,7 +69,6 @@ shortyAintUri uri =
     , " did you forget http://?"
     ]
 
-
 shortyFound :: TL.Text -> TL.Text
 shortyFound tbs =
   TL.concat
@@ -88,8 +87,14 @@ app rConn = do
         shawty <- liftIO shortyGen
         let shorty = BC.pack shawty
             uri' = encodeUtf8 (TL.toStrict uri)
-        resp <- liftIO (saveURI rConn shorty uri')
-        html (shortyCreated resp shawty)
+        alreadyPres <- liftIO (getURI rConn shorty)
+        case alreadyPres of
+          Left reply -> text (TL.pack (show reply))
+          Right mbBS -> case mbBS of
+            Just _ -> text "already present"
+            Nothing -> do
+              resp <- liftIO (saveURI rConn shorty uri')
+              html (shortyCreated resp shawty)
       Nothing -> text (shortyAintUri uri)
   get "/:short" $ do
     short <- param "short"
