@@ -11,6 +11,7 @@ import qualified Database.Redis as R
 import Network.URI (URI, parseURI)
 import qualified System.Random as SR
 import Web.Scotty
+import Control.Monad.Reader
 
 alphaNum :: String
 alphaNum = ['A'..'Z'] ++ ['0'..'9']
@@ -107,7 +108,10 @@ app rConn = do
           where tbs :: TL.Text
                 tbs = TL.fromStrict (decodeUtf8 bs)
 
+runApp :: ReaderT R.Connection ScottyM ()
+runApp = ReaderT app
+
 main :: IO ()
 main = do
   rConn <- R.connect R.defaultConnectInfo
-  scotty 3000 (app rConn)
+  scotty 3000 (runReaderT runApp $ rConn)
